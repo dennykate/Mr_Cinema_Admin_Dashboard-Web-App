@@ -5,16 +5,16 @@ import EditAdsCard from "./EditAdsCard";
 
 const AdsContainer = () => {
   const [adsData, setAdsData] = useState([]);
+  const [refreshCode, setRefreshCode] = useState(true);
 
   useEffect(() => {
     fetchAdsData();
-  }, []);
+  }, [refreshCode]);
 
   const fetchAdsData = () => {
     fetch("http://localhost:8000/ads")
       .then((res) => res.json())
       .then((data) => {
-        console.log(data.data);
         setAdsData(data.data);
       });
   };
@@ -37,6 +37,9 @@ const AdsContainer = () => {
                 key={index}
                 name={adsDetails[index].type}
                 position={adsDetails[index].position}
+                mongoId={data._id}
+                setRefreshCode={setRefreshCode}
+                refreshCode={refreshCode}
               />
             );
           })}
@@ -45,7 +48,16 @@ const AdsContainer = () => {
   );
 };
 
-const AdsCard = ({ type, gif, name, position, url }) => {
+const AdsCard = ({
+  type,
+  gif,
+  name,
+  position,
+  url,
+  mongoId,
+  setRefreshCode,
+  refreshCode,
+}) => {
   const [showAds, setShowAds] = useState(false);
   return (
     <>
@@ -56,6 +68,9 @@ const AdsCard = ({ type, gif, name, position, url }) => {
         position={position}
         name={name}
         url={url}
+        mongoId={mongoId}
+        setRefreshCode={setRefreshCode}
+        refreshCode={refreshCode}
       />
       <div className="sm:w-60 w-10/12 h-48 bg-white shadow-lg rounded-lg flex flex-col justify-center items-center mb-4">
         <div

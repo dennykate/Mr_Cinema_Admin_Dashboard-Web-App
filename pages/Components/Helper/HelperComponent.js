@@ -18,11 +18,11 @@ export const BackButton = ({ back }) => {
   );
 };
 
-export const InputCard = ({ type, placeholder, setData, id }) => (
+export const InputCard = ({ type, placeholder, setData, value }) => (
   <div className="w-full h-16 mb-6">
     <div className="ml-1 font-bold text-[#4F46E5]">{type}</div>
     <input
-      value={type == "Id" || type == "Code" || type == "Slug" ? id : undefined}
+      value={value}
       type="text"
       className="w-full sm:h-12 h-10 bg-gray-300 px-3 outline-[#4F46E5]"
       placeholder={placeholder}

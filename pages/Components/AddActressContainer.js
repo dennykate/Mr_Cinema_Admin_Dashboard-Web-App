@@ -1,10 +1,17 @@
 import React, { useEffect, useState } from "react";
 import Image from "next/image";
+import { useRouter } from "next/router";
+
 import { BackButton, InputCard } from "./Helper/HelperComponent";
 import Alert from "./Alert";
 
 const AddActressContainer = () => {
+  const router = useRouter();
+
+  const [edit, setEdit] = useState(false);
+
   const [id, setId] = useState();
+  const [mongoid, setMongoid] = useState();
   const [title, setTitle] = useState("");
   const [slug, setSlug] = useState();
   const [image, setImage] = useState();
@@ -14,12 +21,36 @@ const AddActressContainer = () => {
   const [text, setText] = useState("");
 
   useEffect(() => {
-    fetchId();
-  }, []);
+    fetchEditData();
+  }, [router.query]);
 
   useEffect(() => {
     setSlug(title.toLowerCase().replace(" ", "-"));
   }, [title]);
+
+  const fetchEditData = () => {
+    const { slug } = router.query;
+    if (!slug) {
+      fetchId();
+      return;
+    }
+
+    setEdit(true);
+    fetch(`http://localhost:8000/actress/${slug}`)
+      .then((res) => res.json())
+      .then((data) => {
+        setMongoid(data[0]._id);
+        setAllData(data[0]);
+      });
+  };
+
+  const setAllData = (data) => {
+    setId(data.id);
+    setTitle(data.title);
+    setSlug(data.slug);
+    setImage(data.image);
+    setRate(data.rate);
+  };
 
   const fetchId = () => {
     fetch("http://localhost:8000/actress")
@@ -34,19 +65,76 @@ const AddActressContainer = () => {
 
     for (let i in data) {
       if (data[i] == undefined || data[i] == "") {
-        toggleAlertShow();
-        setText("Fail");
+        toggleAlertShow("Fail");
         return;
       }
     }
 
     console.log(data);
-    toggleAlertShow();
-    setText("Success");
+    checkAdminAndUpload(data);
   };
 
-  const toggleAlertShow = () => {
+  const checkAdminAndUpload = (upload_data) => {
+    const authcode = localStorage.getItem("auth-code");
+    fetch("http://localhost:8000/user/check-admin", {
+      method: "POST",
+      headers: {
+        authorization: `Bearer ${authcode}`,
+      },
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        console.log(data);
+        if (data.message == "Fail") {
+          toggleAlertShow("Unauthorized");
+          return;
+        }
+
+        if (!edit) {
+          uploadToSever(upload_data);
+        } else {
+          editToSever(upload_data);
+        }
+      });
+  };
+
+  const uploadToSever = (data) => {
+    const authcode = localStorage.getItem("auth-code");
+    fetch("http://localhost:8000/actress", {
+      method: "POST",
+      headers: {
+        "Content-type": "application/json",
+        Authorization: `Bearer ${authcode}`,
+      },
+      body: JSON.stringify(data),
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        toggleAlertShow("Success");
+        router.push("./actress");
+      });
+  };
+
+  const editToSever = (data) => {
+    const authcode = localStorage.getItem("auth-code");
+    fetch(`http://localhost:8000/actress/${mongoid}`, {
+      method: "PATCH",
+      headers: {
+        "Content-type": "application/json",
+        Authorization: `Bearer ${authcode}`,
+      },
+      body: JSON.stringify(data),
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        toggleAlertShow("Success");
+        router.push("./actress");
+      });
+  };
+
+  const toggleAlertShow = (text) => {
     setAlertShow(true);
+    setText(text);
 
     setTimeout(() => {
       setAlertShow(false);
@@ -55,13 +143,11 @@ const AddActressContainer = () => {
 
   return (
     <div className="w-full h-screen overflow-scroll hide-scrollbar pb-20 relative">
-      {
-        <Alert
-          text={text}
-          show={alertShow}
-          color={text == "Fail" ? "bg-red-600" : "bg-green-600"}
-        />
-      }
+      <Alert
+        text={text}
+        show={alertShow}
+        color={text == "Success" ? "bg-green-600" : "bg-red-600"}
+      />
 
       <BackButton back={"./actress"} />
 
@@ -74,7 +160,7 @@ const AddActressContainer = () => {
             src={image ? image : "https://i.postimg.cc/Bbdw9c4b/demo-thumb.jpg"}
             alt="Category Thumbnail"
             width={1280}
-            height={720}
+            height={820}
           />
         </div>
 
@@ -89,20 +175,40 @@ const AddActressContainer = () => {
             </div>
           </div>
 
-          <InputCard type={"Id"} placeholder={"id"} setData={setId} id={id} />
+          <InputCard
+            type={"Id"}
+            placeholder={"id"}
+            setData={setId}
+            value={id}
+          />
 
-          <InputCard type={"Rate"} placeholder={"rate"} setData={setRate} />
+          <InputCard
+            type={"Rate"}
+            placeholder={"rate"}
+            setData={setRate}
+            value={rate}
+          />
 
-          <InputCard type={"Title"} placeholder={"title"} setData={setTitle} />
+          <InputCard
+            type={"Title"}
+            placeholder={"title"}
+            setData={setTitle}
+            value={title}
+          />
 
           <InputCard
             type={"Slug"}
             placeholder={"slug"}
             setData={setSlug}
-            id={slug}
+            value={slug}
           />
 
-          <InputCard type={"Image"} placeholder={"image"} setData={setImage} />
+          <InputCard
+            type={"Image"}
+            placeholder={"image"}
+            setData={setImage}
+            value={image}
+          />
         </div>
       </div>
     </div>

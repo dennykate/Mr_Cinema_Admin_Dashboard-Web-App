@@ -1,12 +1,73 @@
+import React, { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import React from "react";
 import ItemCard from "./ItemCard";
+import Alert from "./Alert";
 
 const ActressContainer = () => {
+  const [actress, setActress] = useState([]);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
+  const [refreshCode, setRefreshCode] = useState(true);
+
+  const [alertShow, setAlertShow] = useState(false);
+  const [text, setText] = useState("");
+
+  useEffect(() => {
+    fetchCategoryData(page);
+  }, [page, refreshCode]);
+
+  const fetchCategoryData = (page) => {
+    fetch(`http://localhost:8000/actress?page=${page}`)
+      .then((res) => res.json())
+      .then((data) => {
+        setTotal(data.meta.total);
+        setActress(data.data);
+      });
+  };
+
+  const prevPage = () => {
+    if (page == 1) {
+      toggleAlertShow();
+      return;
+    }
+
+    setPage(parseInt(page) - 1);
+  };
+
+  const nextPage = () => {
+    const lastPage = Math.floor(total / 8) + 1;
+    if (lastPage == page) {
+      toggleAlertShow();
+      return;
+    }
+
+    setPage(parseInt(page) + 1);
+  };
+
+  const inputHandle = (text) => {
+    if (text.target.value < 0) {
+      toggleAlertShow();
+      return;
+    }
+
+    setPage(text.target.value);
+  };
+
+  const toggleAlertShow = () => {
+    setAlertShow(true);
+    setText("Page doesn't exist");
+
+    setTimeout(() => {
+      setAlertShow(false);
+    }, 3000);
+  };
+
   return (
     <div className="w-full sm:pt-4 pt-2 sm:px-10 px-0 h-screen overflow-scroll hide-scrollbar pb-20">
-      <Link href={"./add-actress"}>
+      <Alert text={text} show={alertShow} color={"bg-red-600"} />
+
+      <Link href={"./add-edit-actress"}>
         <div
           id="add-item-button"
           className="sm:w-36 w-28 sm:h-10 h-8 flex justify-center items-center bg-[#4F46E5] rounded-sm text-white font-mono
@@ -23,10 +84,11 @@ const ActressContainer = () => {
             <div
               className="w-1/5 h-full sm:p-2 p-1 cursor-pointer hover:bg-gray-300 rounded-sm
             flex justify-center items-center"
+              onClick={prevPage}
             >
               <Image
                 src={require("../../public/images/prev-icon.png")}
-                alt="Next Icon"
+                alt="Prev Icon"
                 width={18}
                 height={18}
               />
@@ -34,6 +96,7 @@ const ActressContainer = () => {
             <div
               className="w-1/5 h-full sm:p-2 p-1 cursor-pointer hover:bg-gray-300 rounded-sm
             flex justify-center items-center"
+              onClick={nextPage}
             >
               <Image
                 src={require("../../public/images/next-icon.png")}
@@ -43,28 +106,25 @@ const ActressContainer = () => {
               />
             </div>
             <input
+              value={page}
               type="number"
-              className="w-1/5 outline-[#4F46E5] border-2 border-gray-300 text-center text-black font-bold"
+              className="w-3/5 outline-[#4F46E5] border-2 border-gray-300 text-center text-black font-bold"
+              onChange={inputHandle}
             />
-            <div
-              className="w-2/5 border-2 border-[#4F46E5] flex items-center justify-center
-          sm:text-sm text-xs cursor-pointer font-extrabold hover:bg-[#4F46E5] hover:text-white"
-            >
-              Confirm
-            </div>
           </div>
         </div>
 
         <div className="w-full border border-opacity-20 border-black  mt-5">
-          <ItemCard />
-          <ItemCard />
-          <ItemCard />
-          <ItemCard />
-          <ItemCard />
-          <ItemCard />
-          <ItemCard />
-          <ItemCard />
-          <ItemCard />
+          {actress.length > 0 &&
+            actress.map((data, index) => (
+              <ItemCard
+                key={index}
+                data={data}
+                path={"actress"}
+                setRefreshCode={setRefreshCode}
+                refreshCode={refreshCode}
+              />
+            ))}
         </div>
       </div>
     </div>

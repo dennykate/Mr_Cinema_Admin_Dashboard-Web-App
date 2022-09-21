@@ -22,7 +22,6 @@ const AuthCodeContainer = () => {
     })
       .then((res) => res.json())
       .then((data) => {
-        console.log(data.message);
         if (data.message) {
           alert("Auth Fail");
           setToken("Auth Fail");

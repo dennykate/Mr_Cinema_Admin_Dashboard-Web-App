@@ -1,13 +1,31 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 
 const StatsiticView = () => {
+  const [totalvideo, setTotalvideo] = useState();
+  const [totalcategory, setTotalcategory] = useState();
+  const [totalactress, setTotalactress] = useState();
+
+  useEffect(() => {
+    fetchTotalVideo("movie", setTotalvideo);
+    fetchTotalVideo("category", setTotalcategory);
+    fetchTotalVideo("actress", setTotalactress);
+  }, []);
+
+  const fetchTotalVideo = (path, setData) => {
+    fetch(`http://localhost:8000/${path}`)
+      .then((res) => res.json())
+      .then((data) => {
+        setData(data.meta.total);
+      });
+  };
+
   return (
     <div className="w-full ">
       <div className="w-10/12 mx-auto flex flex-row justify-between items-center flex-wrap pt-8">
-        <StatsiticCard total={120} type={"VIDEOS"} />
-        <StatsiticCard total={30} type={"CATEGORIES"} />
-        <StatsiticCard total={82} type={"ACTRESSES"} />
-        <StatsiticCard total={1413432151} type={"VIEWS"} />
+        <StatsiticCard total={totalvideo} type={"VIDEOS"} />
+        <StatsiticCard total={totalcategory} type={"CATEGORIES"} />
+        <StatsiticCard total={totalactress} type={"ACTRESSES"} />
+        <StatsiticCard total={"---"} type={"VIEWS"} />
       </div>
     </div>
   );

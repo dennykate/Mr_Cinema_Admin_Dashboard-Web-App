@@ -8,7 +8,10 @@ import Alert from "./Alert";
 const AddCategoryContainer = () => {
   const router = useRouter();
 
+  const [edit, setEdit] = useState(false);
+
   const [id, setId] = useState();
+  const [mongoid, setMongoid] = useState();
   const [title, setTitle] = useState("");
   const [slug, setSlug] = useState();
   const [image, setImage] = useState();
@@ -17,12 +20,35 @@ const AddCategoryContainer = () => {
   const [text, setText] = useState("");
 
   useEffect(() => {
-    fetchId();
-  }, []);
+    fetchEditData();
+  }, [router.query]);
 
   useEffect(() => {
-    setSlug(title.toLowerCase());
+    setSlug(title.toLowerCase().replace(" ", "-"));
   }, [title]);
+
+  const fetchEditData = () => {
+    const { slug } = router.query;
+    if (!slug) {
+      fetchId();
+      return;
+    }
+
+    setEdit(true);
+    fetch(`http://localhost:8000/category/${slug}`)
+      .then((res) => res.json())
+      .then((data) => {
+        setMongoid(data[0]._id);
+        setAllData(data[0]);
+      });
+  };
+
+  const setAllData = (data) => {
+    setId(data.id);
+    setTitle(data.title);
+    setSlug(data.slug);
+    setImage(data.image);
+  };
 
   const fetchId = () => {
     fetch("http://localhost:8000/category")
@@ -40,28 +66,79 @@ const AddCategoryContainer = () => {
 
     for (let i in data) {
       if (data[i] == undefined || data[i] == "") {
-        toggleAlertShow();
-        setText("fail");
+        toggleAlertShow("Fail");
         return;
       }
     }
 
     console.log(data);
-    toggleAlertShow();
-    setText("success");
-    defaultValue();
+    checkAdminAndUpload(data);
   };
 
-  const toggleAlertShow = () => {
+  const checkAdminAndUpload = (upload_data) => {
+    const authcode = localStorage.getItem("auth-code");
+    fetch("http://localhost:8000/user/check-admin", {
+      method: "POST",
+      headers: {
+        authorization: `Bearer ${authcode}`,
+      },
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.message == "Fail") {
+          toggleAlertShow("Unauthorized");
+          return;
+        }
+
+        if (!edit) {
+          uploadToSever(upload_data);
+        } else {
+          editToSever(upload_data);
+        }
+      });
+  };
+
+  const uploadToSever = (data) => {
+    const authcode = localStorage.getItem("auth-code");
+    fetch("http://localhost:8000/category", {
+      method: "POST",
+      headers: {
+        "Content-type": "application/json",
+        Authorization: `Bearer ${authcode}`,
+      },
+      body: JSON.stringify(data),
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        toggleAlertShow("Success");
+        router.push("./category");
+      });
+  };
+
+  const editToSever = (data) => {
+    const authcode = localStorage.getItem("auth-code");
+    fetch(`http://localhost:8000/category/${mongoid}`, {
+      method: "PATCH",
+      headers: {
+        "Content-type": "application/json",
+        Authorization: `Bearer ${authcode}`,
+      },
+      body: JSON.stringify(data),
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        toggleAlertShow("Success");
+        router.push("./category");
+      });
+  };
+
+  const toggleAlertShow = (text) => {
     setAlertShow(true);
+    setText(text);
 
     setTimeout(() => {
       setAlertShow(false);
     }, 3000);
-  };
-
-  const defaultValue = () => {
-    router.push("./category");
   };
 
   return (
@@ -70,7 +147,7 @@ const AddCategoryContainer = () => {
         <Alert
           text={text}
           show={alertShow}
-          color={text == "fail" ? "bg-red-600" : "bg-green-600"}
+          color={text == "Success" ? "bg-green-600" : "bg-red-600"}
         />
       }
 
@@ -85,7 +162,7 @@ const AddCategoryContainer = () => {
             src={image ? image : "https://i.postimg.cc/Bbdw9c4b/demo-thumb.jpg"}
             alt="Category Thumbnail"
             width={1280}
-            height={720}
+            height={820}
           />
         </div>
 
@@ -100,18 +177,33 @@ const AddCategoryContainer = () => {
             </div>
           </div>
 
-          <InputCard type={"Id"} placeholder={"id"} setData={setId} id={id} />
+          <InputCard
+            type={"Id"}
+            placeholder={"id"}
+            setData={setId}
+            value={id}
+          />
 
-          <InputCard type={"Title"} placeholder={"title"} setData={setTitle} />
+          <InputCard
+            type={"Title"}
+            placeholder={"title"}
+            setData={setTitle}
+            value={title}
+          />
 
           <InputCard
             type={"Slug"}
             placeholder={"slug"}
             setData={setSlug}
-            id={slug}
+            value={slug}
           />
 
-          <InputCard type={"Image"} placeholder={"image"} setData={setImage} />
+          <InputCard
+            type={"Image"}
+            placeholder={"image"}
+            setData={setImage}
+            value={image}
+          />
         </div>
       </div>
     </div>

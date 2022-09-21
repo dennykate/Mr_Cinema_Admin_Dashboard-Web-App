@@ -2,12 +2,94 @@ import React, { useEffect, useState } from "react";
 import { XMarkIcon } from "@heroicons/react/24/solid";
 import Image from "next/image";
 
-const EditAdsCard = ({ gif, show, type, position, name, url }) => {
+import Alert from "./Alert";
+
+const EditAdsCard = ({
+  gif,
+  show,
+  type,
+  position,
+  name,
+  url,
+  mongoId,
+  setRefreshCode,
+  refreshCode,
+}) => {
   const [editCardShow, setEditCardShow] = useState(false);
+
+  const [updateUrl, setUpdateUrl] = useState();
+  const [updateGif, setUpdateGif] = useState();
+  const [alertShow, setAlertShow] = useState(false);
+  const [text, setText] = useState("");
 
   useEffect(() => {
     setEditCardShow(show);
   }, [show]);
+
+  useEffect(() => {
+    setUpdateUrl(url);
+    setUpdateGif(gif);
+  }, []);
+
+  const post = () => {
+    const data = { url: updateUrl, gif: updateGif };
+
+    for (let i in data) {
+      if (data[i] == undefined || data[i] == "") {
+        toggleAlertShow("Error");
+      }
+    }
+
+    checkAdminAndUpload(data);
+  };
+
+  const checkAdminAndUpload = (upload_data) => {
+    const authcode = localStorage.getItem("auth-code");
+    fetch("http://localhost:8000/user/check-admin", {
+      method: "POST",
+      headers: {
+        "Content-type": "application/json",
+        Authorization: `Bearer ${authcode}`,
+      },
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.message == "Fail") {
+          toggleAlertShow("Unauthorized");
+          return;
+        }
+
+        editToSever(upload_data);
+      });
+  };
+
+  const editToSever = (data) => {
+    const authcode = localStorage.getItem("auth-code");
+    fetch(`http://localhost:8000/ads/${mongoId}`, {
+      method: "PATCH",
+      headers: {
+        "Content-type": "application/json",
+        Authorization: `Bearer ${authcode}`,
+      },
+      body: JSON.stringify(data),
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.message == "update success") {
+          toggleAlertShow("Success");
+          setRefreshCode(!refreshCode);
+        }
+      });
+  };
+
+  const toggleAlertShow = (text) => {
+    setAlertShow(true);
+    setText(text);
+
+    setTimeout(() => {
+      setAlertShow(false);
+    }, 3000);
+  };
 
   return (
     <div
@@ -17,6 +99,11 @@ const EditAdsCard = ({ gif, show, type, position, name, url }) => {
       } transition-ease-in-out duration-100 overflow-hidden flex justify-center items-center py-5 
     `}
     >
+      <Alert
+        show={alertShow}
+        text={text}
+        color={text == "Success" ? "bg-green-600" : "bg-red-600"}
+      />
       {/* Hide Card */}
       <div className="sm:w-3/4 w-11/12 h-auto bg-white rounded-md relative">
         <div
@@ -39,12 +126,14 @@ const EditAdsCard = ({ gif, show, type, position, name, url }) => {
                 : "sm:w-1/4 w-1/2"
             } mx-auto `}
           >
-            <Image
-              src={gif}
-              alt="ads"
-              width={type == "banner" ? 1024 : 512}
-              height={type == "banner" ? 180 : 512}
-            />
+            {updateGif && (
+              <Image
+                src={updateGif}
+                alt="ads"
+                width={type == "banner" ? 1024 : 512}
+                height={type == "banner" ? 180 : 512}
+              />
+            )}
           </div>
 
           <div className="text-lg font-semibold mt-4">{name}</div>
@@ -52,18 +141,25 @@ const EditAdsCard = ({ gif, show, type, position, name, url }) => {
           <input
             type="text"
             className="w-full h-10 bg-[#f5f5f5] mt-4 px-2 text-sm outline-[#4F46E5]"
-            value={gif}
+            value={updateGif}
             placeholder="Gif"
+            onChange={(text) => {
+              setUpdateGif(text.target.value);
+            }}
           />
           <input
             type="text"
             className="w-full h-10 bg-[#f5f5f5] mt-4 px-2 text-sm outline-[#4F46E5]"
-            value={url}
+            value={updateUrl}
             placeholder="Url"
+            onChange={(text) => {
+              setUpdateUrl(text.target.value);
+            }}
           />
           <div
             className="sm:w-32 w-full h-10 text-sm flex justify-center items-center bg-[#4F46E5]
            text-white font-semibold mt-10 cursor-pointer rounded-md"
+            onClick={post}
           >
             Confirm Edit
           </div>
